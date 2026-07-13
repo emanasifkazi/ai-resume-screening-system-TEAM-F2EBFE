@@ -1,4 +1,4 @@
-# AI Resume Screening System v3.0
+# AI Resume Screening System v1.0
 
 AI Lab Final Project — Rule-Based AI + Search/Optimisation AI + Machine
 Learning AI + NLP/LLM-assisted AI, built with Flask in a single-file app.
