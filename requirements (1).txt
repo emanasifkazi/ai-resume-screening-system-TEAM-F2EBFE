@@ -1,0 +1,14 @@
+numpy
+pandas
+nltk
+spacy
+scikit-learn
+torch
+transformers
+PyPDF2
+python-docx
+fastapi
+uvicorn
+sqlalchemy
+python-dotenv
+pydantic
