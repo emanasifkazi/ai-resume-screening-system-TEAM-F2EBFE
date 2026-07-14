@@ -1,3 +1,4 @@
+#Author Mahnoor Farooque 2k23/CSM/63
 {
   "description": "Sample resume dataset for AI Resume Screening System. Each record contains candidate name, a plain-text resume body, a pre-extracted skills list, years of experience, and highest education.",
   "version": "1.0",
