@@ -1,0 +1,93 @@
+{
+  "description": "Sample resume dataset for AI Resume Screening System. Each record contains candidate name, a plain-text resume body, a pre-extracted skills list, years of experience, and highest education.",
+  "version": "1.0",
+  "created": "2026-06-30",
+  "records": [
+    {
+      "id": 1,
+      "name": "Ali Hassan",
+      "text": "Ali Hassan — Python Developer\nExperience: 3 years\nSkills: Python, Machine Learning, TensorFlow, SQL, Django, REST APIs\nEducation: BS Computer Science, FAST NUCES Lahore, 2020\nProjects: Built an image classification pipeline using TensorFlow; developed REST API backends with Django for two startups.",
+      "skills": [
+        "python",
+        "machine learning",
+        "tensorflow",
+        "sql",
+        "django",
+        "rest api"
+      ],
+      "experience_years": 3,
+      "education": "BS Computer Science"
+    },
+    {
+      "id": 2,
+      "name": "Sara Khan",
+      "text": "Sara Khan — Data Scientist\nExperience: 2 years\nSkills: Python, NLP, Deep Learning, scikit-learn, pandas, numpy\nEducation: MS Data Science, NUST Islamabad, 2022\nProjects: Sentiment analysis on social media data; text summarisation using transformer models; customer churn prediction with XGBoost.",
+      "skills": [
+        "python",
+        "nlp",
+        "deep learning",
+        "scikit-learn",
+        "pandas",
+        "numpy"
+      ],
+      "experience_years": 2,
+      "education": "MS Data Science"
+    },
+    {
+      "id": 3,
+      "name": "Ahmed Raza",
+      "text": "Ahmed Raza — Backend Engineer\nExperience: 4 years\nSkills: Java, Spring Boot, MySQL, Docker, Kubernetes\nEducation: BS Software Engineering, UET Lahore, 2019\nProjects: Designed microservices architecture for a fintech platform; containerised 12 services with Docker and orchestrated via Kubernetes.",
+      "skills": [
+        "java",
+        "spring boot",
+        "mysql",
+        "docker",
+        "kubernetes"
+      ],
+      "experience_years": 4,
+      "education": "BS Software Engineering"
+    },
+    {
+      "id": 4,
+      "name": "Fatima Malik",
+      "text": "Fatima Malik — AI Researcher\nExperience: 5 years\nSkills: Python, PyTorch, Computer Vision, OpenCV, Research\nEducation: PhD Computer Science (in progress), Quaid-i-Azam University\nPublications: 3 peer-reviewed papers on object detection and medical imaging. Proficient in training custom YOLO variants and building research pipelines.",
+      "skills": [
+        "python",
+        "pytorch",
+        "computer vision",
+        "opencv",
+        "research"
+      ],
+      "experience_years": 5,
+      "education": "PhD (in progress)"
+    },
+    {
+      "id": 5,
+      "name": "Usman Tariq",
+      "text": "Usman Tariq — Junior Web Developer\nExperience: 1 year (internship)\nSkills: HTML, CSS, JavaScript, React\nEducation: BS Computer Science (in progress), COMSATS University\nProjects: Built portfolio websites and a React-based task management app.",
+      "skills": [
+        "html",
+        "css",
+        "javascript",
+        "react"
+      ],
+      "experience_years": 1,
+      "education": "BS (in progress)"
+    },
+    {
+      "id": 6,
+      "name": "Zara Baig",
+      "text": "Zara Baig — ML Engineer\nExperience: 3 years at an AI startup\nSkills: Python, scikit-learn, TensorFlow, Keras, SQL, Flask\nEducation: MS Computer Science, Lahore University of Management Sciences, 2021\nProjects: End-to-end ML pipelines for demand forecasting and anomaly detection; deployed models as REST APIs using Flask.",
+      "skills": [
+        "python",
+        "scikit-learn",
+        "tensorflow",
+        "keras",
+        "sql",
+        "flask"
+      ],
+      "experience_years": 3,
+      "education": "MS Computer Science"
+    }
+  ]
+}
