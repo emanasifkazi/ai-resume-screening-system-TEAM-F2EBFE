@@ -1,4 +1,3 @@
-# Author: Eman Asif | Roll No: 2K23/CSM/35    
 """
 AI Resume Screening System  v3.0
 ==================================
@@ -2848,6 +2847,9 @@ canvas{max-height:210px}
               <button class="schip" onclick="askChat('Compare the top 2 candidates.')">Compare top 2</button>
               <button class="schip" onclick="askChat('Explain the scoring method used.')">How scoring works?</button>
               <button class="schip" onclick="askChat('Which candidate has the most experience?')">Most experience?</button>
+              <button class="schip" onclick="askChat('Who is the worst candidate?')">Weakest candidate?</button>
+              <button class="schip" onclick="askChat('Who is in Tier A?')">Tier A candidates?</button>
+              <button class="schip" onclick="askChat('How many candidates are there?')">How many candidates?</button>
             </div>
             <!-- Input row -->
             <div style="display:flex;gap:8px">
@@ -3417,45 +3419,65 @@ function buildContext(){
   };
 }
 
+// Helper: find candidates whose name is mentioned in the question
+function findNamedCandidates(q, cands){
+  const hits = [];
+  cands.forEach(c=>{
+    const full = c.name.toLowerCase();
+    const first = full.split(' ')[0];
+    if(q.includes(full) || (first.length>2 && q.includes(first))) hits.push(c);
+  });
+  return hits;
+}
+// Helper: find a skill mentioned in the question (from JD skills or any matched/missing skill)
+function findMentionedSkill(q, ctx){
+  const allSkills = new Set(ctx.jd_skills||[]);
+  ctx.candidates.forEach(c=>{ (c.matched||[]).forEach(s=>allSkills.add(s)); (c.missing||[]).forEach(s=>allSkills.add(s)); });
+  const sorted = [...allSkills].sort((a,b)=>b.length-a.length); // longest first (e.g. "machine learning" before "learning")
+  for(const sk of sorted){ if(q.includes(sk)) return sk; }
+  return null;
+}
+const ORDINALS = {first:1,second:2,third:3,fourth:4,fifth:5,sixth:6,seventh:7,eighth:8,ninth:9,tenth:10,
+  '1st':1,'2nd':2,'3rd':3,'4th':4,'5th':5,'6th':6,'7th':7,'8th':8,'9th':9,'10th':10};
+
 function nlpAnswer(question, ctx){
-  // NLP pattern matching → natural-language generation
-  const q = question.toLowerCase();
+  // NLP pattern matching → natural-language generation (rule-based, no external API)
+  const q = question.toLowerCase().trim();
   const cands = ctx.candidates;
   const qualified = cands.filter(c=>c.score>=ctx.threshold);
+  const notQualified = cands.filter(c=>c.score<ctx.threshold);
   const top = cands[0];
+  const bottom = cands[cands.length-1];
 
-  // Who is best?
-  if(q.match(/best|top|highest|number one|#1|first/)){
-    const factors = [];
-    if(top.tfidf>=60) factors.push(`high text similarity (${top.tfidf}%)`);
-    if(top.skill>=60) factors.push(`strong skill match (${top.skill}%)`);
-    if(top.exp_score>=80) factors.push(`solid experience (${top.exp_yrs} years)`);
-    if(top.semantic&&top.semantic>=60) factors.push(`semantic alignment (${top.semantic}%)`);
-    const why = factors.length ? `Key strengths: ${factors.join(', ')}.` : `Their overall profile aligns well with the job description.`;
-    return `🏆 The best candidate is **${top.name}** with a final score of **${top.score}%** (Tier ${top.tier}). ${why} They matched ${top.matched.length} of ${ctx.jd_skills.length} required skills: ${top.matched.slice(0,4).join(', ')||'(none listed)'}.`;
+  // ── 0. Greeting / help ──────────────────────────────────────────────────
+  if(q.match(/^(hi|hello|hey|salam|assalam|yo)\b/) || q.match(/what can (i|you) ask|help me|what.*(can|do) you (do|know)/)){
+    return `👋 Hi! I can answer questions about the current screening results, for example:\n\n` +
+      `• "Who is the best/worst candidate?"\n` +
+      `• "Tell me about **[a candidate's name]**"\n` +
+      `• "Who knows **[a skill]**?"\n` +
+      `• "Who is in Tier A?" / "Who is rank 3?"\n` +
+      `• "Who qualifies?" / "Who doesn't qualify?"\n` +
+      `• "Compare [name1] and [name2]"\n` +
+      `• "Who has the most/least experience?"\n` +
+      `• "How many candidates are there?"\n` +
+      `• "What's the average score?"\n\n` +
+      `Ask anything about the ${cands.length} screened candidates!`;
   }
 
-  // Who qualifies?
-  if(q.match(/qualif|pass|eligible|shortlist|above threshold/)){
-    if(!qualified.length) return `❌ No candidates met the qualification threshold of ${ctx.threshold}%. Consider lowering the threshold or providing candidates with more relevant experience.`;
-    const names = qualified.map(c=>`${c.name} (${c.score}%)`).join(', ');
-    return `✅ **${qualified.length} of ${cands.length}** candidates qualify (score ≥ ${ctx.threshold}%):\n\n${names}\n\nThe remaining ${cands.length-qualified.length} candidate(s) scored below the threshold and are not recommended for this role.`;
+  // ── 1. Specific candidate named in the question (highest priority) ─────
+  const namedHits = findNamedCandidates(q, cands);
+  if(namedHits.length === 1){
+    const c = namedHits[0];
+    const status = c.score>=ctx.threshold ? '✅ Qualified' : '❌ Not Qualified';
+    return `👤 **${c.name}** — Rank #${c.rank}, Tier ${c.tier} (${status})\n\n` +
+      `• Final Score: **${c.score}%**\n` +
+      `• TF-IDF: ${c.tfidf}%${c.semantic!==null&&c.semantic!==undefined?` · Semantic: ${c.semantic}%`:''} · Skill Match: ${c.skill}% · Experience: ${c.exp_score}% (${c.exp_yrs} yrs)\n` +
+      `• Education: ${c.education||'Not specified'}\n` +
+      `• Matched Skills (${c.matched.length}): ${c.matched.join(', ')||'none'}\n` +
+      `• Missing Skills (${c.missing.length}): ${c.missing.join(', ')||'none'}`;
   }
-
-  // Missing skills?
-  if(q.match(/missing|gap|lack|don't have|do not have/)){
-    const freq = {};
-    cands.forEach(c=>c.missing.forEach(sk=>{ freq[sk]=(freq[sk]||0)+1; }));
-    const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,6);
-    if(!sorted.length) return `✅ All candidates collectively cover the required skills — no major skill gaps detected.`;
-    const list = sorted.map(([sk,n])=>`**${sk}** (missing in ${n}/${cands.length} candidates)`).join('\n• ');
-    return `🎯 **Most common skill gaps** across all ${cands.length} candidates:\n\n• ${list}\n\nFocus hiring or training efforts on these areas.`;
-  }
-
-  // Compare top 2?
-  if(q.match(/compar|vs|versus|difference|better/)){
-    if(cands.length<2) return 'Only one candidate found — nothing to compare.';
-    const a=cands[0], b=cands[1];
+  if(namedHits.length >= 2){
+    const [a,b] = namedHits;
     const winner = a.score>b.score?a:b;
     return `📊 **Comparison: ${a.name} vs ${b.name}**\n\n` +
       `| Metric | ${a.name} | ${b.name} |\n` +
@@ -3468,20 +3490,165 @@ function nlpAnswer(question, ctx){
       `🏆 **${winner.name}** has the stronger overall profile.`;
   }
 
-  // Scoring method?
+  // ── 2. Specific skill named in the question ─────────────────────────────
+  if(q.match(/skill|know|proficient|experienced in|expert in|familiar with|has\b/)){
+    const sk = findMentionedSkill(q, ctx);
+    if(sk){
+      const have = cands.filter(c=>(c.matched||[]).includes(sk));
+      const lack = cands.filter(c=>(c.missing||[]).includes(sk));
+      if(!have.length && !lack.length) return `🔍 I couldn't find "${sk}" as a tracked skill for this job description.`;
+      let ans = `🎯 **Skill: ${sk}**\n\n`;
+      ans += have.length ? `✅ **Have it (${have.length}):** ${have.map(c=>c.name).join(', ')}\n\n` : `❌ No candidate has this skill.\n\n`;
+      if(lack.length) ans += `⚠️ **Missing it (${lack.length}):** ${lack.map(c=>c.name).join(', ')}`;
+      return ans;
+    }
+  }
+
+  // ── 3. Tier lookup ("tier a", "grade b", "who is tier c") ──────────────
+  const tierMatch = q.match(/tier\s*([abcd])\b|grade\s*([abcd])\b/);
+  if(tierMatch){
+    const t = (tierMatch[1]||tierMatch[2]).toUpperCase();
+    const inTier = cands.filter(c=>c.tier===t);
+    if(!inTier.length) return `No candidates fall into Tier ${t}.`;
+    return `🏷 **Tier ${t} candidates (${inTier.length}):**\n\n${inTier.map(c=>`${c.name} — ${c.score}%`).join('\n')}`;
+  }
+
+  // ── 4. Rank / ordinal lookup ("rank 3", "3rd candidate", "who is second") ─
+  let rankNum = null;
+  const rankDigitMatch = q.match(/rank\s*#?(\d+)|number\s*(\d+)|#(\d+)/);
+  if(rankDigitMatch) rankNum = parseInt(rankDigitMatch[1]||rankDigitMatch[2]||rankDigitMatch[3]);
+  if(!rankNum){
+    for(const [word,num] of Object.entries(ORDINALS)){
+      if(q.includes(word) && q.match(/rank|candidate|place|position/)){ rankNum = num; break; }
+    }
+  }
+  if(rankNum){
+    const c = cands.find(x=>x.rank===rankNum);
+    if(!c) return `There's no candidate at rank #${rankNum} — only ${cands.length} candidates were screened.`;
+    return `📍 Rank **#${rankNum}** is **${c.name}** with a score of **${c.score}%** (Tier ${c.tier}).`;
+  }
+
+  // ── 5. Best / top / highest ──────────────────────────────────────────────
+  if(q.match(/\b(best|top|highest|number one|first place|winner)\b/) && !q.match(/worst|lowest|least|bottom/)){
+    const factors = [];
+    if(top.tfidf>=60) factors.push(`high text similarity (${top.tfidf}%)`);
+    if(top.skill>=60) factors.push(`strong skill match (${top.skill}%)`);
+    if(top.exp_score>=80) factors.push(`solid experience (${top.exp_yrs} years)`);
+    if(top.semantic&&top.semantic>=60) factors.push(`semantic alignment (${top.semantic}%)`);
+    const why = factors.length ? `Key strengths: ${factors.join(', ')}.` : `Their overall profile aligns well with the job description.`;
+    return `🏆 The best candidate is **${top.name}** with a final score of **${top.score}%** (Tier ${top.tier}). ${why} They matched ${top.matched.length} of ${ctx.jd_skills.length} required skills: ${top.matched.slice(0,4).join(', ')||'(none listed)'}.`;
+  }
+
+  // ── 6. Worst / lowest / least (NEW) ─────────────────────────────────────
+  if(q.match(/\bworst|lowest|least|bottom|weakest\b/)){
+    const gaps = [];
+    if(bottom.tfidf<40) gaps.push(`low text similarity (${bottom.tfidf}%)`);
+    if(bottom.skill<40) gaps.push(`weak skill match (${bottom.skill}%)`);
+    if(bottom.exp_score<50) gaps.push(`insufficient experience (${bottom.exp_yrs} years)`);
+    const why = gaps.length ? `Main gaps: ${gaps.join(', ')}.` : `Their profile has the lowest overall alignment with the job description.`;
+    return `📉 The lowest-ranked candidate is **${bottom.name}** with a final score of **${bottom.score}%** (Tier ${bottom.tier}). ${why} Missing skills: ${bottom.missing.slice(0,4).join(', ')||'none'}.`;
+  }
+
+  // ── 7. Who qualifies / who doesn't ──────────────────────────────────────
+  if(q.match(/not qualif|don't qualify|do not qualify|fail|didn't pass|did not pass|below threshold|unqualified/)){
+    if(!notQualified.length) return `🎉 All ${cands.length} candidates met the qualification threshold of ${ctx.threshold}%!`;
+    const names = notQualified.map(c=>`${c.name} (${c.score}%)`).join(', ');
+    return `❌ **${notQualified.length} of ${cands.length}** candidates did NOT qualify (score < ${ctx.threshold}%):\n\n${names}`;
+  }
+  if(q.match(/qualif|pass|eligible|shortlist|above threshold/)){
+    if(!qualified.length) return `❌ No candidates met the qualification threshold of ${ctx.threshold}%. Consider lowering the threshold or providing candidates with more relevant experience.`;
+    const names = qualified.map(c=>`${c.name} (${c.score}%)`).join(', ');
+    return `✅ **${qualified.length} of ${cands.length}** candidates qualify (score ≥ ${ctx.threshold}%):\n\n${names}\n\nThe remaining ${cands.length-qualified.length} candidate(s) scored below the threshold and are not recommended for this role.`;
+  }
+
+  // ── 8. Score threshold filter ("above 80%", "below 50%", "over 70", "under 40") ─
+  const thMatch = q.match(/(above|over|greater than|more than|higher than)\s*(\d+)/) || q.match(/(below|under|less than|lower than)\s*(\d+)/);
+  if(thMatch){
+    const isAbove = /above|over|greater|more|higher/.test(thMatch[1]);
+    const val = parseInt(thMatch[2]);
+    const matches = cands.filter(c=>isAbove ? c.score>val : c.score<val);
+    if(!matches.length) return `No candidates scored ${isAbove?'above':'below'} ${val}%.`;
+    return `📊 **${matches.length} candidate(s) scored ${isAbove?'above':'below'} ${val}%:**\n\n${matches.map(c=>`${c.name} (${c.score}%)`).join(', ')}`;
+  }
+
+  // ── 9. Missing skills / gaps (general, no specific skill named) ────────
+  if(q.match(/missing|gap|lack|don't have|do not have/)){
+    const freq = {};
+    cands.forEach(c=>c.missing.forEach(sk=>{ freq[sk]=(freq[sk]||0)+1; }));
+    const sorted = Object.entries(freq).sort((a,b)=>b[1]-a[1]).slice(0,6);
+    if(!sorted.length) return `✅ All candidates collectively cover the required skills — no major skill gaps detected.`;
+    const list = sorted.map(([sk,n])=>`**${sk}** (missing in ${n}/${cands.length} candidates)`).join('\n• ');
+    return `🎯 **Most common skill gaps** across all ${cands.length} candidates:\n\n• ${list}\n\nFocus hiring or training efforts on these areas.`;
+  }
+
+  // ── 10. Compare (generic — top 2, if no names were caught above) ───────
+  if(q.match(/compar|vs\.?\b|versus|difference|better/)){
+    if(cands.length<2) return 'Only one candidate found — nothing to compare.';
+    const a=cands[0], b=cands[1];
+    const winner = a.score>b.score?a:b;
+    return `📊 **Comparison: ${a.name} vs ${b.name}** (top 2 by rank)\n\n` +
+      `| Metric | ${a.name} | ${b.name} |\n` +
+      `|--------|-----------|----------|\n` +
+      `| Final Score | ${a.score}% | ${b.score}% |\n` +
+      `| TF-IDF | ${a.tfidf}% | ${b.tfidf}% |\n` +
+      `| Skill Match | ${a.skill}% | ${b.skill}% |\n` +
+      `| Experience | ${a.exp_yrs} yrs | ${b.exp_yrs} yrs |\n` +
+      `| Tier | ${a.tier} | ${b.tier} |\n\n` +
+      `🏆 **${winner.name}** has the stronger overall profile.\n\n(Tip: name two specific candidates, e.g. "Compare Ali and Sara", to compare exactly those two.)`;
+  }
+
+  // ── 11. Scoring method ───────────────────────────────────────────────────
   if(q.match(/scoring|how.*work|algorithm|method|formula|weight/)){
     return `⚙️ **Scoring Method (AI Resume Screening)**\n\nThe system combines four signals into a final weighted score:\n\n• **TF-IDF Cosine Similarity (40%)** — Measures textual overlap between resume and job description using term-frequency inverse-document-frequency vectors.\n• **Skill Match (40%)** — Direct keyword overlap between the candidate's skills and the required skills in the JD.\n• **Experience Score (20%)** — Ratio of candidate's years of experience to the required years (capped at 100%).\n\nWhen Semantic AI is enabled, weights shift to: TF-IDF 20% · Semantic 35% · Skill 30% · Experience 15%.\n\nCandidates are then classified into **Tier A** (≥75%), **Tier B** (≥60%), **Tier C** (≥45%), or **Tier D** (below 45%).`;
   }
 
-  // Most experience?
+  // ── 12. Most / least experience ─────────────────────────────────────────
+  if(q.match(/least experience|less experience|junior|fewest years/)){
+    const leastExp = [...cands].sort((a,b)=>a.exp_yrs-b.exp_yrs)[0];
+    return `💼 **${leastExp.name}** has the least experience with **${leastExp.exp_yrs} year(s)**. Their experience score is ${leastExp.exp_score}%. Education: ${leastExp.education}.`;
+  }
   if(q.match(/experience|senior|years|worked/)){
     const mostExp = [...cands].sort((a,b)=>b.exp_yrs-a.exp_yrs)[0];
     return `💼 **${mostExp.name}** has the most experience with **${mostExp.exp_yrs} year(s)**. Their experience score is ${mostExp.exp_score}%. Education: ${mostExp.education}.`;
   }
 
-  // Fallback — general summary
-  const avg = (cands.reduce((s,c)=>s+c.score,0)/cands.length).toFixed(1);
-  return `📋 **Screening Summary**\n\nProcessed **${cands.length} candidates** against ${ctx.jd_skills.length} required skills.\n\n• Average score: **${avg}%**\n• Qualified (≥${ctx.threshold}%): **${qualified.length}** candidates\n• Top candidate: **${top.name}** at ${top.score}%\n• Most missing skill: ${Object.entries((() => { const f={}; cands.forEach(c=>c.missing.forEach(sk=>f[sk]=(f[sk]||0)+1)); return f; })()).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'none'}\n\nTry asking: "Who is the best candidate?", "What skills are missing?", or "How does scoring work?"`;
+  // ── 13. Education ─────────────────────────────────────────────────────────
+  if(q.match(/education|degree|phd|masters|bachelor|qualification.*academic|highest.*stud/)){
+    const withPhd = cands.filter(c=>/phd|doctorate/i.test(c.education||''));
+    if(withPhd.length) return `🎓 **${withPhd.map(c=>c.name).join(', ')}** hold(s) a PhD — the highest academic qualification among the screened candidates.`;
+    const withMasters = cands.filter(c=>/master|ms\b|m\.s/i.test(c.education||''));
+    if(withMasters.length) return `🎓 **${withMasters.map(c=>c.name).join(', ')}** hold a Master's degree — the highest academic qualification among the screened candidates (no PhD holders found).`;
+    return `🎓 Education levels across candidates: ${cands.map(c=>`${c.name} (${c.education||'not specified'})`).join(', ')}.`;
+  }
+
+  // ── 14. Count / list all ─────────────────────────────────────────────────
+  if(q.match(/how many|count|total (number|candidates)|number of candidates/)){
+    return `🔢 There are **${cands.length}** candidates in total: **${qualified.length}** qualified and **${notQualified.length}** not qualified (threshold: ${ctx.threshold}%).`;
+  }
+  if(q.match(/list all|show all|all candidates|everyone|every candidate/)){
+    return `📋 **All ${cands.length} candidates (by rank):**\n\n${cands.map(c=>`${c.rank}. ${c.name} — ${c.score}% (Tier ${c.tier})`).join('\n')}`;
+  }
+
+  // ── 15. Average / stats ──────────────────────────────────────────────────
+  if(q.match(/average|mean|median|statistic|overall (score|stats)/)){
+    const scores = cands.map(c=>c.score);
+    const avg = (scores.reduce((s,v)=>s+v,0)/scores.length).toFixed(1);
+    const sorted = [...scores].sort((a,b)=>a-b);
+    const median = sorted.length%2 ? sorted[(sorted.length-1)/2] : ((sorted[sorted.length/2-1]+sorted[sorted.length/2])/2).toFixed(1);
+    return `📈 **Score Statistics**\n\n• Average: **${avg}%**\n• Median: **${median}%**\n• Highest: ${Math.max(...scores)}% (${top.name})\n• Lowest: ${Math.min(...scores)}% (${bottom.name})\n• Qualified: ${qualified.length}/${cands.length}`;
+  }
+
+  // ── 16. Smart fallback — try a partial name/skill match one more time, ──
+  //       otherwise give a rich summary instead of a generic non-answer.
+  const looseName = cands.find(c=>c.name.split(' ').some(part=>part.length>3 && q.includes(part.toLowerCase())));
+  if(looseName){
+    const c = looseName;
+    return `👤 I think you're asking about **${c.name}** — Rank #${c.rank}, Score **${c.score}%**, Tier ${c.tier}. Matched skills: ${c.matched.join(', ')||'none'}. Missing: ${c.missing.join(', ')||'none'}.`;
+  }
+  const freqAll = {}; cands.forEach(c=>c.missing.forEach(sk=>freqAll[sk]=(freqAll[sk]||0)+1));
+  const topGap = Object.entries(freqAll).sort((a,b)=>b[1]-a[1])[0]?.[0] || 'none';
+  const avgAll = (cands.reduce((s,c)=>s+c.score,0)/cands.length).toFixed(1);
+  return `📋 **Screening Summary**\n\nI didn't fully recognise that question, but here's the current picture: processed **${cands.length} candidates** against ${ctx.jd_skills.length} required skills.\n\n• Average score: **${avgAll}%**\n• Qualified (≥${ctx.threshold}%): **${qualified.length}**\n• Top: **${top.name}** (${top.score}%) · Lowest: **${bottom.name}** (${bottom.score}%)\n• Most common missing skill: ${topGap}\n\nTry: "Who is the best/worst?", "Tell me about [name]", "Who knows [skill]?", "Who is Tier A?", "How many candidates?", or "What's the average score?"`;
 }
 
 function addChatMsg(text, role){
