@@ -1,5 +1,7 @@
 # AI Resume Screening System v3.0
 
+**Team ID: TEAM_F2EBFE**
+
 AI Lab Final Project — Rule-Based AI + Search/Optimisation AI + Machine
 Learning AI + NLP/LLM-assisted AI, built with Flask in a single-file app.
 
@@ -49,7 +51,7 @@ an evaluation of the AI methods used.
 | **1 — Rule-based AI** | Forward chaining (IF–THEN rules over facts like `high_score`, `meets_base_requirement`) | 🔗 Forward Chaining panel |
 | **2 — Search / Optimisation AI** | BFS, DFS, UCS, Greedy Best-First, A\*, and Local Search (Hill Climbing) — all solving "pick the best K-candidate shortlist" | 🔍 Search Algorithms panel |
 | **3 — Machine Learning AI** | **Real trained models**, not just similarity scoring: Logistic Regression (classification), Linear Regression (regression), and K-Means + PCA (clustering) — each with metrics, confusion matrix / R² / silhouette score, and visual predictions. Plus: TF-IDF cosine similarity + optional Sentence-Transformer semantic embeddings for the core screening score | 🧠 ML Training panel (trained models) + core screening run (similarity score) |
-| **4 — NLP / LLM-assisted AI** | Tokenisation, stop-word removal, lemmatisation, POS tagging, NER (spaCy), keyword frequency, bigram (2-word phrase) extraction, lexicon-based sentiment/tone analysis, extractive summarisation, and a chatbot-style Q&A panel | 🧬 NLP Pipeline + 💬 NLP Chat panels |
+| **4 — NLP / LLM-assisted AI** | Tokenisation, stop-word removal, lemmatisation, POS tagging, NER (spaCy), keyword frequency, bigram (2-word phrase) extraction, lexicon-based sentiment/tone analysis, extractive summarisation, and a chatbot-style Q&A panel covering 15+ question types (best/worst candidate, named-candidate lookup, skill/tier/rank lookup, qualified vs not-qualified, score-threshold filters, education, statistics, and more) | 🧬 NLP Pipeline + 💬 NLP Chat panels |
 
 ### 2.1 Machine Learning AI, in detail
 
