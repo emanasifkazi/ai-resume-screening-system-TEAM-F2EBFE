@@ -1,14 +1,14 @@
-numpy
-pandas
-nltk
-spacy
-scikit-learn
-torch
-transformers
-PyPDF2
-python-docx
-fastapi
-uvicorn
-sqlalchemy
-python-dotenv
-pydantic
+# ── Core (required to run the app) ────────────────────────────────
+Flask>=3.0.0
+numpy>=1.24.0
+scikit-learn>=1.3.0
+
+# ── Optional (app runs with graceful fallbacks if any are missing —
+#    the related feature simply turns off; see README "Feature Flags") ──
+pdfplumber>=0.10.0            # PDF resume upload & text extraction
+sentence-transformers>=2.2.0  # Semantic AI matching (Machine Learning AI)
+spacy>=3.7.0                  # POS tagging + Named Entity Recognition (NLP AI)
+mysql-connector-python>=8.0.0 # Persistent score storage / Database History panel
+
+# After installing spacy, also run:
+#   python -m spacy download en_core_web_sm
